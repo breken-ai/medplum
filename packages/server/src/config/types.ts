@@ -256,6 +256,12 @@ export interface MedplumServerConfig {
    * Optional customizations to the server generated CapabilityStatement.
    */
   capabilityStatement?: MedplumCapabilityStatementConfig;
+
+  /** Optional AWS Lambda MicroVM base image ARN. */
+  awsLambdaMicrovmBaseImageArn?: string;
+
+  /** Optional AWS Lambda MicroVM build role ARN. */
+  awsLambdaMicrovmBuildRoleArn?: string;
 }
 
 export interface MedplumCapabilityStatementConfig {
