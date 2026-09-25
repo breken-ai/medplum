@@ -9,6 +9,7 @@ import type {
   Observation,
   Patient,
   Practitioner,
+  Questionnaire,
   QuestionnaireResponse,
   SearchParameter,
   ServiceRequest,
@@ -275,6 +276,44 @@ describe('Search matching', () => {
           filters: [{ code: 'name', operator: Operator.EQUALS, value: 'Test' }],
         }
       )
+    ).toBe(true);
+  });
+
+  test('String filter with :exact modifier', () => {
+    const patient: Patient = { resourceType: 'Patient', name: [{ family: 'Smithson' }] };
+    const exact = (value: string): boolean =>
+      matchesSearchRequest(patient, {
+        resourceType: 'Patient',
+        filters: [{ code: 'family', operator: Operator.EXACT, value }],
+      });
+
+    expect(exact('Smithson')).toBe(true);
+    expect(exact('Smith')).toBe(false);
+    expect(exact('smithson')).toBe(false);
+    expect(exact('Smith,Smithson')).toBe(true);
+  });
+
+  test('URI filter matches the whole URI', () => {
+    const questionnaire: Questionnaire = {
+      resourceType: 'Questionnaire',
+      status: 'active',
+      url: 'http://example.com/intake-v2',
+    };
+    const url = (value: string): boolean =>
+      matchesSearchRequest(questionnaire, {
+        resourceType: 'Questionnaire',
+        filters: [{ code: 'url', operator: Operator.EQUALS, value }],
+      });
+
+    expect(url('http://example.com/intake-v2')).toBe(true);
+    expect(url('http://example.com/intake')).toBe(false);
+    expect(url('example.com')).toBe(false);
+    expect(url('HTTP://EXAMPLE.COM/INTAKE-V2')).toBe(false);
+    expect(
+      matchesSearchRequest(questionnaire, {
+        resourceType: 'Questionnaire',
+        filters: [{ code: 'url', operator: Operator.NOT_EQUALS, value: 'http://example.com/intake' }],
+      })
     ).toBe(true);
   });
 

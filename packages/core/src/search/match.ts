@@ -38,6 +38,8 @@ export function matchesSearchRequest(resource: Resource, searchRequest: SearchRe
 
 const searchExprCache = new LRUCache<FhirPathAtom>(1000);
 
+const uriExactOperators: Operator[] = [Operator.EQUALS, Operator.NOT_EQUALS, Operator.EXACT, Operator.NOT];
+
 /**
  * Determines if the resource matches the search filter.
  * @param resource - The resource that was created or updated.
@@ -63,8 +65,10 @@ function matchesSearchFilter(resource: Resource, searchRequest: SearchRequest, f
     case 'reference':
       return matchesReferenceFilter(searchParam, typedValues, filter);
     case 'string':
+      return matchesStringFilter(typedValues, filter, filter.operator === Operator.EXACT);
     case 'uri':
-      return matchesStringFilter(typedValues, filter);
+      // Without a modifier such as :below or :above, URI search matches the whole URI, case-sensitively
+      return matchesStringFilter(typedValues, filter, uriExactOperators.includes(filter.operator));
     case 'token':
       return matchesTokenFilter(typedValues, filter);
     case 'date':
@@ -151,13 +155,13 @@ function matchesTokenValue(resourceValue: SearchableToken, filterValue: string):
   return resourceValue.value?.toLowerCase() === filterValue.toLowerCase();
 }
 
-function matchesStringFilter(typedValues: TypedValue[], filter: Filter): boolean {
+function matchesStringFilter(typedValues: TypedValue[], filter: Filter, exact: boolean): boolean {
   const resourceValues = convertToSearchableStrings(typedValues);
   const filterValues = splitSearchOnComma(filter.value);
   const negated = isNegated(filter.operator);
   for (const resourceValue of resourceValues) {
     for (const filterValue of filterValues) {
-      const match = matchesStringValue(resourceValue, filterValue);
+      const match = exact ? resourceValue === filterValue : matchesStringValue(resourceValue, filterValue);
       if (match) {
         return !negated;
       }
